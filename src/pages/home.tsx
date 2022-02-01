@@ -1,9 +1,29 @@
 import { useState } from 'react';
 import styled from '@emotion/styled';
-import { Button, Card, CardContent, CardMedia, CircularProgress, Dialog, Modal, Typography } from '@mui/material';
+import {
+  Button,
+  Card,
+  CardActions,
+  CardContent,
+  CardMedia,
+  Chip,
+  CircularProgress,
+  Dialog,
+  Typography,
+} from '@mui/material';
 import useSWRInfinite from 'swr/infinite';
 
-type Artwork = { id: string; image_id?: string; title: string; artist_title: string; [k: string]: unknown };
+type Artwork = {
+  id: string;
+  image_id?: string;
+  title: string;
+  artist_title: string;
+  category_titles?: string[];
+  category_ids?: string[];
+};
+
+// same as above
+const ARTWORK_FIELDS = 'id,image_id,title,artist_title,category_titles,category_ids';
 
 export const HomePage = () => {
   return (
@@ -23,7 +43,7 @@ const HomePageContent = () => {
     return response.data as Array<Artwork>;
   };
   const { data, error, size, setSize, isValidating } = useSWRInfinite(
-    (_page) => `https://api.artic.edu/api/v1/artworks?page=${_page + 1}`,
+    (_page) => `https://api.artic.edu/api/v1/artworks?fields=${ARTWORK_FIELDS}&page=${_page + 1}`,
     getImages,
     { revalidateOnFocus: false }
   );
@@ -40,7 +60,7 @@ const HomePageContent = () => {
       <CardGrid>
         {data &&
           data.flat().map((artwork) => {
-            const { id, image_id, title, artist_title } = artwork;
+            const { id, image_id, title, artist_title, category_titles, category_ids } = artwork;
             return image_id ? (
               <CardWrapper
                 key={id}
@@ -53,12 +73,13 @@ const HomePageContent = () => {
                 <CardImageWrapper>
                   <CardMedia
                     component='img'
-                    image={`https://www.artic.edu/iiif/2/${image_id}/full/843,/0/default.jpg`}
+                    image={`https://www.artic.edu/iiif/2/${image_id}/full/843,/0/default.jpg`} // see https://api.artic.edu/docs/#iiif-image-api
                     alt={`${artwork.title} by  ${artwork.image_id}`}
                     height={200}
                   />
                 </CardImageWrapper>
-                <CardContent>
+
+                <CardContent sx={{ flexGrow: 1 }}>
                   <Typography
                     gutterBottom
                     variant='h6'
@@ -76,10 +97,27 @@ const HomePageContent = () => {
                     {artist_title}
                   </Typography>
                 </CardContent>
+
+                <CardActions>
+                  <ChipsWrapper>
+                    {category_titles?.map((category, index) => {
+                      const categoryId = category_ids?.[index];
+                      return (
+                        <Chip
+                          key={categoryId}
+                          label={category}
+                          variant={'outlined'}
+                          sx={{ fontSize: '0.7rem', height: '1.5rem' }}
+                        />
+                      );
+                    })}
+                  </ChipsWrapper>
+                </CardActions>
               </CardWrapper>
             ) : null;
           })}
       </CardGrid>
+
       {!isInitialLoading && (
         <Button
           disabled={isSubsequentLoading}
@@ -90,18 +128,19 @@ const HomePageContent = () => {
           {isSubsequentLoading && <CircularProgress size='1rem' />}
         </Button>
       )}
+
       {openArtwork !== undefined && <ArtworkModal artwork={openArtwork} onClose={() => setOpenArtwork(undefined)} />}
     </>
   );
 };
 
-export const ArtworkModal = ({ artwork, onClose }: { artwork: Artwork; onClose: () => void }) => {
+const ArtworkModal = ({ artwork, onClose }: { artwork: Artwork; onClose: () => void }) => {
   return (
     <Dialog open onClose={onClose}>
       <Card>
         <CardMedia
           component='img'
-          image={`https://www.artic.edu/iiif/2/${artwork.image_id}/full/843,/0/default.jpg`}
+          image={`https://www.artic.edu/iiif/2/${artwork.image_id}/full/843,/0/default.jpg`} // see https://api.artic.edu/docs/#iiif-image-api
           alt={`${artwork.title} by  ${artwork.image_id}`}
         />
       </Card>
@@ -135,10 +174,13 @@ const CardImageWrapper = styled.div`
 `;
 
 const CardWrapper = styled(Card)`
+  display: flex;
+  flex-direction: column;
   cursor: pointer;
 
   img {
     transition: transform 0.5s;
+    will-change: transform;
   }
 
   &:hover,
@@ -147,4 +189,12 @@ const CardWrapper = styled(Card)`
       transform: scale(1.1);
     }
   }
+`;
+
+const ChipsWrapper = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  pointer-events: none;
 `;
