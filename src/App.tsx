@@ -1,40 +1,35 @@
-import { useState } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import * as React from 'react';
+import { css, Global } from '@emotion/react';
+import { createTheme, CssBaseline, ThemeProvider, useMediaQuery } from '@mui/material';
+import { HomePage } from './pages/home';
 
-function App() {
-  const [count, setCount] = useState(0);
+const globalStyles = css`
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(0deg 0% 25% / 0.5);
+  }
+`;
 
-  return (
-    <div className='App'>
-      <header className='App-header'>
-        <img src={logo} className='App-logo' alt='logo' />
-        <p>Hello Vite + React!</p>
-        <p>
-          <button type='button' onClick={() => setCount((count) => count + 1)}>
-            count is: {count}
-          </button>
-        </p>
-        <p>
-          Edit <code>App.tsx</code> and save to test HMR updates.
-        </p>
-        <p>
-          <a className='App-link' href='https://reactjs.org' target='_blank' rel='noopener noreferrer'>
-            Learn React
-          </a>
-          {' | '}
-          <a
-            className='App-link'
-            href='https://vitejs.dev/guide/features.html'
-            target='_blank'
-            rel='noopener noreferrer'
-          >
-            Vite Docs
-          </a>
-        </p>
-      </header>
-    </div>
+export const App = () => {
+  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+  const theme = React.useMemo(
+    () =>
+      createTheme({
+        palette: { mode: prefersDarkMode ? 'dark' : 'light' },
+        typography: { fontFamily: 'system-ui, Roboto, Arial, sans-serif' },
+      }),
+    [prefersDarkMode]
   );
-}
+  return (
+    <ThemeProvider theme={theme}>
+      <Global styles={globalStyles} />
+      <CssBaseline enableColorScheme />
+      <HomePage />
+    </ThemeProvider>
+  );
+};
 
 export default App;
