@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import styled from '@emotion/styled';
-import { Button, Card, CardContent, CardMedia, CircularProgress, Typography } from '@mui/material';
+import { Button, Card, CardContent, CardMedia, CircularProgress, Dialog, Modal, Typography } from '@mui/material';
 import useSWRInfinite from 'swr/infinite';
 
-type Artwork = { id: string; image_id?: string; title: string; artist_title: string };
+type Artwork = { id: string; image_id?: string; title: string; artist_title: string; [k: string]: unknown };
 
 export const HomePage = () => {
   return (
@@ -15,13 +16,16 @@ export const HomePage = () => {
 };
 
 const HomePageContent = () => {
+  const [openArtwork, setOpenArtwork] = useState<Artwork>();
+
   const getImages = async (url: string) => {
     const response = await fetch(url).then((res) => res.json());
     return response.data as Array<Artwork>;
   };
   const { data, error, size, setSize, isValidating } = useSWRInfinite(
     (_page) => `https://api.artic.edu/api/v1/artworks?page=${_page + 1}`,
-    getImages
+    getImages,
+    { revalidateOnFocus: false }
   );
 
   const isInitialLoading = isValidating && size === 1;
@@ -35,36 +39,46 @@ const HomePageContent = () => {
     <>
       <CardGrid>
         {data &&
-          data.flat().map(({ id, image_id, title, artist_title }, index) => (
-            <Card key={id} sx={{ cursor: 'pointer' }}>
-              {image_id && (
-                <CardMedia
-                  component='img'
-                  image={`https://www.artic.edu/iiif/2/${image_id}/full/843,/0/default.jpg`}
-                  alt=''
-                  height={200}
-                />
-              )}
-              <CardContent>
-                <Typography
-                  gutterBottom
-                  variant='h5'
-                  component='div'
-                  sx={{
-                    WebkitLineClamp: '3',
-                    WebkitBoxOrient: 'vertical',
-                    display: '-webkit-box',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {title}
-                </Typography>
-                <Typography variant='body2' color='text.secondary'>
-                  {artist_title}
-                </Typography>
-              </CardContent>
-            </Card>
-          ))}
+          data.flat().map((artwork) => {
+            const { id, image_id, title, artist_title } = artwork;
+            return image_id ? (
+              <CardWrapper
+                key={id}
+                tabIndex={0}
+                onClick={() => setOpenArtwork(artwork)}
+                onKeyDown={({ key }) => {
+                  if (key === 'Enter' || key === ' ') setOpenArtwork(artwork);
+                }}
+              >
+                <CardImageWrapper>
+                  <CardMedia
+                    component='img'
+                    image={`https://www.artic.edu/iiif/2/${image_id}/full/843,/0/default.jpg`}
+                    alt={`${artwork.title} by  ${artwork.image_id}`}
+                    height={200}
+                  />
+                </CardImageWrapper>
+                <CardContent>
+                  <Typography
+                    gutterBottom
+                    variant='h6'
+                    component='div'
+                    sx={{
+                      WebkitLineClamp: '3',
+                      WebkitBoxOrient: 'vertical',
+                      display: '-webkit-box',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {title}
+                  </Typography>
+                  <Typography variant='body2' color='text.secondary'>
+                    {artist_title}
+                  </Typography>
+                </CardContent>
+              </CardWrapper>
+            ) : null;
+          })}
       </CardGrid>
       {!isInitialLoading && (
         <Button
@@ -76,7 +90,22 @@ const HomePageContent = () => {
           {isSubsequentLoading && <CircularProgress size='1rem' />}
         </Button>
       )}
+      {openArtwork !== undefined && <ArtworkModal artwork={openArtwork} onClose={() => setOpenArtwork(undefined)} />}
     </>
+  );
+};
+
+export const ArtworkModal = ({ artwork, onClose }: { artwork: Artwork; onClose: () => void }) => {
+  return (
+    <Dialog open onClose={onClose}>
+      <Card>
+        <CardMedia
+          component='img'
+          image={`https://www.artic.edu/iiif/2/${artwork.image_id}/full/843,/0/default.jpg`}
+          alt={`${artwork.title} by  ${artwork.image_id}`}
+        />
+      </Card>
+    </Dialog>
   );
 };
 
@@ -88,14 +117,34 @@ const HomePageWrapper = styled.main`
 `;
 
 const MaxWidthWrapper = styled.div`
-  max-width: 1000px;
+  width: min(100%, 1000px);
   display: grid;
   place-items: center;
   gap: 2rem;
 `;
 
 const CardGrid = styled.div`
+  width: 100%;
   display: grid;
   gap: 2rem;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+`;
+
+const CardImageWrapper = styled.div`
+  overflow: hidden;
+`;
+
+const CardWrapper = styled(Card)`
+  cursor: pointer;
+
+  img {
+    transition: transform 0.5s;
+  }
+
+  &:hover,
+  &:focus-visible {
+    img {
+      transform: scale(1.1);
+    }
+  }
 `;
