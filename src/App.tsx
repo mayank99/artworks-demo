@@ -2,6 +2,7 @@ import * as React from 'react';
 import { css, Global } from '@emotion/react';
 import { createTheme, CssBaseline, ThemeProvider, useMediaQuery } from '@mui/material';
 import { HomePage } from './pages/home';
+import styled from '@emotion/styled';
 
 const globalStyles = css`
   ::-webkit-scrollbar {
@@ -9,7 +10,7 @@ const globalStyles = css`
     height: 8px;
   }
   ::-webkit-scrollbar-thumb {
-    background: hsl(0deg 0% 25% / 0.5);
+    background: hsl(0deg 0% 50% / 0.5);
   }
 `;
 
@@ -27,9 +28,16 @@ export const App = () => {
     <ThemeProvider theme={theme}>
       <Global styles={globalStyles} />
       <CssBaseline enableColorScheme />
-      <HomePage />
+      <Content>
+        <HomePage />
+      </Content>
     </ThemeProvider>
   );
 };
+
+const Content = styled.div`
+  display: grid;
+  place-items: center;
+`;
 
 export default App;
